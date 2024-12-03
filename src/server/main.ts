@@ -4,15 +4,16 @@ import cors from 'cors';
 import { createConnection } from 'mysql2/promise';
 import dotenv from 'dotenv';
 import morgan from 'morgan'
-import ItemHandler from './handlers/itemHandler';
-import ItemNoteHandler from './handlers/itemNoteHandler';
-import ItemPriceHandler from './handlers/itemPriceHandler';
-import ItemTypeHandler from './handlers/itemTypeHandler';
+import ItemHandler from './handlers/itemHandler.ts';
+import ItemNoteHandler from './handlers/itemNoteHandler.ts';
+import ItemPriceHandler from './handlers/itemPriceHandler.ts';
+import ItemTypeHandler from './handlers/itemTypeHandler.ts';
+import ViteExpress from "vite-express";
 
 dotenv.config();
 
 const app = express();
-const port = process.env.port || 3000;
+const port : number = 3000;
 
 const mysqlConnection = await createConnection({
     host: process.env.DB_HOST,
@@ -27,6 +28,7 @@ const logger = morgan('dev');
 app.use(cors());
 app.use(bodyParser.json());
 app.use(logger);
+app.use(ViteExpress.static());
 
 
 const itemHandler = new ItemHandler(mysqlConnection);
@@ -72,6 +74,8 @@ app.use('/itemPrices',itemPriceRouter);
 app.use('/itemTypes',itemTypeRouter);
 
 
-app.listen(port, () => {
+const server = app.listen(port, () => {
     console.log(`Server is running on http://localhost:${port}`);
 });
+
+ViteExpress.bind(app,server);
