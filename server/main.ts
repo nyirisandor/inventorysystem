@@ -4,11 +4,10 @@ import cors from 'cors';
 import { createConnection } from 'mysql2/promise';
 import dotenv from 'dotenv';
 import morgan from 'morgan'
-import ItemHandler from './handlers/itemHandler.ts';
-import ItemNoteHandler from './handlers/itemNoteHandler.ts';
-import ItemPriceHandler from './handlers/itemPriceHandler.ts';
-import ItemTypeHandler from './handlers/itemTypeHandler.ts';
-import ViteExpress from "vite-express";
+import ItemHandler from './handlers/itemHandler';
+import ItemNoteHandler from './handlers/itemNoteHandler';
+import ItemPriceHandler from './handlers/itemPriceHandler';
+import ItemTypeHandler from './handlers/itemTypeHandler';
 
 dotenv.config();
 
@@ -25,10 +24,11 @@ const mysqlConnection = await createConnection({
 
 const logger = morgan('dev');
 
-app.use(cors());
-app.use(bodyParser.json());
-app.use(logger);
-app.use(ViteExpress.static());
+const api = express.Router();
+
+api.use(cors());
+api.use(bodyParser.json());
+api.use(logger);
 
 
 const itemHandler = new ItemHandler(mysqlConnection);
@@ -67,15 +67,13 @@ itemTypeRouter.get("/:id",itemTypeHandler.getItemTypeEntryByID);
 itemTypeRouter.put("/:id",itemTypeHandler.updateItemTypeEntryByID);
 itemTypeRouter.delete("/:id",itemTypeHandler.deleteItemTypeEntryByID);
 
+api.use('/items',itemRouter);
+api.use('/itemNotes',itemNoteRouter);
+api.use('/itemPrices',itemPriceRouter);
+api.use('/itemTypes',itemTypeRouter);
 
-app.use('/items',itemRouter);
-app.use('/itemNotes',itemNoteRouter);
-app.use('/itemPrices',itemPriceRouter);
-app.use('/itemTypes',itemTypeRouter);
-
+app.use("/api",api);
 
 const server = app.listen(port, () => {
     console.log(`Server is running on http://localhost:${port}`);
 });
-
-ViteExpress.bind(app,server);
