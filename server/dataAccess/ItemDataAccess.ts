@@ -32,8 +32,12 @@ export default class ItemDataAccess {
 
         const [results] = await this.connection.execute<ResultSetHeader>(sql,values);
 
-        const resultEntry = itemEntry as ItemEntry;
-        resultEntry.ID = results.insertId;
+        const resultEntry = {
+            name : values[0],
+            description : values[1],
+            typeID : values[2],
+            ID : results.insertId
+        } as ItemEntry;
 
         return resultEntry;
     }

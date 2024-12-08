@@ -1,34 +1,49 @@
-import { useState } from 'react'
-import reactLogo from './assets/react.svg'
-import viteLogo from '/vite.svg'
-import './App.css'
-import { Button } from './components/ui/button'
+import { useEffect, useReducer} from 'react'
+
+import { Route, BrowserRouter as Router, Routes } from 'react-router-dom';
+
+import { ItemReducerActionType, ItemReducerContext, reducer } from './hooks/itemReducer'
+import { getItems } from './services/itemService'
+import ItemPage from './pages/ItemsPage';
+import HomePage from './pages/Homepage';
+import { Navbar } from './components/ui/NavBar';
+import ItemDetailsPage from './pages/ItemDetailsPage';
 
 function App() {
-  const [count, setCount] = useState(0)
+
+  const [items, itemDispatch] = useReducer(reducer,[]);
+
+  const itemReducerContext = ItemReducerContext;
+
+  useEffect(() => {
+    getItems()
+      .then((res) => {
+        itemDispatch({
+            type : ItemReducerActionType.SET_ITEMS,
+            data : res
+        })        
+      })
+  },[]);
+
+ const navLinks = [
+    { path: "/", label: "Home" },
+    { path: "/items", label: "Items" },
+  ];
+
 
   return (
     <>
-      <div>
-        <a href="https://vite.dev" target="_blank">
-          <img src={viteLogo} className="logo" alt="Vite logo" />
-        </a>
-        <a href="https://react.dev" target="_blank">
-          <img src={reactLogo} className="logo react" alt="React logo" />
-        </a>
-      </div>
-      <h1>Vite + React</h1>
-      <div className="card">
-        <Button onClick={() => setCount((count) => count + 1)}>
-          count is {count}
-        </Button>
-        <p>
-          Edit <code>src/App.tsx</code> and save to test HMR
-        </p>
-      </div>
-      <p className="read-the-docs">
-        Click on the Vite and React logos to learn more
-      </p>
+        <itemReducerContext.Provider value={[items, itemDispatch]}>
+          <Router>
+            <Navbar navlinks={navLinks}/>
+            <Routes>
+              <Route path="/" Component={HomePage} />
+              <Route path="/items" Component={ItemPage} />
+              <Route path='/item/:id' Component={ItemDetailsPage}/>
+            </Routes>
+          </Router>
+        
+        </itemReducerContext.Provider>
     </>
   )
 }
