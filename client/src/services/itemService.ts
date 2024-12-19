@@ -133,7 +133,8 @@ const createItem = async (item : {name : string, description : string, typeID : 
         const response = await fetch("/api/items", {
             method : 'post',
             body : JSON.stringify(body),
-            headers : headers
+            headers : headers,
+            credentials : "same-origin"
         });
 
         if(response.status == 201){

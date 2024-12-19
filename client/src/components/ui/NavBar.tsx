@@ -3,9 +3,10 @@ import { Menu, X } from "lucide-react";
 import { Link } from "react-router-dom";
 
 
-type NavbarLink = {
+export type NavbarLink = {
   path : string,
-  label : string
+  label : string,
+  isHidden? : boolean
 }
 
 export function Navbar({navlinks} : {navlinks : NavbarLink[]}) {
@@ -34,30 +35,32 @@ export function Navbar({navlinks} : {navlinks : NavbarLink[]}) {
         </button>
 
         <div className="hidden md:flex space-x-4">
-          {navlinks.map((link) => (
-            <Link
+          {navlinks.map((link) => {
+            if(link.isHidden) return null;
+            return <Link
               key={link.path}
               to={link.path}
-              className="text-gray-700 hover:text-gray-900"
+              className={"text-gray-700 hover:text-gray-900 block"}
             >
               {link.label}
             </Link>
-          ))}
+        })}
         </div>
       </div>
 
       {isMobileMenuOpen && (
         <div className="md:hidden bg-white shadow p-4 space-y-2">
-          {navlinks.map((link) => (
-            <Link
+          {navlinks.map((link) => {
+            if(link.isHidden) return null;
+            return <Link
               key={link.path}
               to={link.path}
-              className="block text-gray-700 hover:text-gray-900"
+              className={"text-gray-700 hover:text-gray-900 block"}
               onClick={toggleMobileMenu}
             >
               {link.label}
             </Link>
-          ))}
+})}
         </div>
       )}
     </nav>
