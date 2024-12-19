@@ -59,3 +59,10 @@ export interface ItemMovementEntry {
     amount : number;
     uom : string;
 }
+
+export interface UserEntry{
+    ID : number,
+    username : string,
+    password_hash : string,
+    isAdmin : boolean
+}

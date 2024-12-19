@@ -65,3 +65,11 @@ CREATE TABLE ItemMovement (
     amount DOUBLE,
     UoM VARCHAR(10)
 );
+
+
+CREATE TABLE User (
+    ID INTEGER AUTO_INCREMENT PRIMARY KEY,
+    username VARCHAR(50) NOT NULL UNIQUE,
+    password_hash VARCHAR(60) NOT NULL,
+    isAdmin BOOLEAN DEFAULT false
+);

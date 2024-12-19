@@ -7,13 +7,14 @@
     "doc": "docs"
   },
   "scripts": {
-    "dev-server": "cd server && npm run dev", 
-    "dev-client": "cd client && npm run dev", 
-    "dev" : "concurrently \"npm run dev-server\" \"npm run dev-client\""
+    "dev-server": "cd server && npm run dev",
+    "dev-client": "cd client && npm run dev",
+    "dev": "concurrently \"npm run dev-server\" \"npm run dev-client\""
   },
   "author": "",
   "license": "ISC",
   "dependencies": {
+    "@types/node": "^22.10.2",
     "concurrently": "^9.1.0"
   }
 }
