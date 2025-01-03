@@ -3,4 +3,6 @@ export interface UploadedDocumentEntry {
     url : string;
     title : string;
     description : string;
+    size : number;
+    warning : string | null;
 }

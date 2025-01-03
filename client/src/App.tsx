@@ -17,6 +17,7 @@ import {useCookies} from 'react-cookie'
 import { isExpired, decodeToken } from "react-jwt";
 import { toast } from './hooks/use-toast';
 import { Toaster } from './components/ui/toaster';
+import DocumentsPage from './pages/DocumentsPage';
 
 function App() {
 
@@ -59,6 +60,7 @@ function App() {
  const navLinks : NavbarLink[] = [
     { path: "/", label: "Home" },
     { path: "/items", label: "Items" },
+    { path: "/documents", label: "Documents" },
     { path: "/login", label: "Login", isHidden: user != null},
     { path: "/register", label: "Register", isHidden: user != null},
     { path: "/profile", label: user?.username || "Profile", isHidden: user == null},
@@ -74,6 +76,7 @@ function App() {
             <Navbar navlinks={navLinks}/>
             <Routes>
               <Route path="/" Component={HomePage} />
+              <Route path="/documents" Component={DocumentsPage} />
               <Route path="/items" Component={ItemPage} />
               <Route path='/item/:id' Component={ItemDetailsPage}/>
               <Route path='/login' Component={LoginPage} />
