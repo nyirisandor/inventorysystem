@@ -11,6 +11,8 @@ import UserHandler from './handlers/userHandler';
 import config from './config/config';
 import { authenticateUser, requireAdmin, requireAdminOrUserID, requireAuthentication } from './middlewares/userMiddleware';
 import cookieParser from 'cookie-parser';
+import DocumentHandler from './handlers/documentHandler';
+import FileUpload from 'express-fileupload'
 
 const app = express();
 
@@ -31,12 +33,14 @@ api.use(bodyParser.json());
 api.use(logger);
 api.use(cookieParser())
 api.use(authenticateUser);
+api.use(FileUpload());
 
 const itemHandler = new ItemHandler(mysqlConnection);
 const itemNoteHandler = new ItemNoteHandler(mysqlConnection);
 const itemPriceHandler = new ItemPriceHandler(mysqlConnection);
 const itemTypeHandler = new ItemTypeHandler(mysqlConnection);
-const userHandler = new UserHandler(mysqlConnection)
+const userHandler = new UserHandler(mysqlConnection);
+const documentHandler = new DocumentHandler(mysqlConnection);
 
 const itemRouter = express.Router();
 itemRouter.get("/",itemHandler.getAllItems);
@@ -77,11 +81,21 @@ userRouter.delete("/:userid",requireAdminOrUserID,userHandler.deleteUser);
 userRouter.put("/:userid",requireAdminOrUserID,userHandler.updateUser);
 userRouter.post("/logout",userHandler.logoutUser);
 
+
+const documentRouter = express.Router();
+documentRouter.get("/",documentHandler.getAllDocumentEntries);
+documentRouter.post("/upload",documentHandler.uploadDocument);
+documentRouter.put("/:id",documentHandler.updateDocumentEntryByID);
+documentRouter.delete("/:id",documentHandler.deleteDocumentByID);
+
+documentRouter.get("/:id/download",documentHandler.downloadDocumentByID);
+
 api.use('/items',itemRouter);
 api.use('/itemNotes',itemNoteRouter);
 api.use('/itemPrices',itemPriceRouter);
 api.use('/itemTypes',itemTypeRouter);
 api.use('/user',userRouter)
+api.use('/documents',documentRouter);
 
 
 
