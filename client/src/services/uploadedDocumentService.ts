@@ -1,7 +1,6 @@
 import { isDeveloperMode } from "@/lib/utils";
 import { UploadedDocumentEntry } from "@/types/uploadeddocument";
-import axios, { AxiosError, AxiosProgressEvent, AxiosRequestConfig, CancelToken, CancelTokenSource } from "axios";
-import { Ref } from "react";
+import axios, { AxiosError, AxiosProgressEvent, AxiosRequestConfig} from "axios";
 
 
 const getUploadedDocuments = async () : Promise<UploadedDocumentEntry[]> => {
@@ -64,9 +63,18 @@ const uploadDocument = async (params : UploadDocumentParameters) : Promise<Uploa
         requestConfig.cancelToken = cancelToken;
         requestConfig.timeout = -1;
 
-        const res = await axios.post("/api/documents/upload",formData,requestConfig);
+        const res = await axios.post("/api/documents/upload",formData,requestConfig)
+        .then((res) => {
+            return res.data;
+        })
+        .catch((err : AxiosError) => {
+            if(err.code = "ERR_CANCELED")
+                return Promise.reject("Canceled by user");
+            else
+                throw err
+        });
 
-        return res.data;
+        return res;
     }
     catch(err){
         if(isDeveloperMode())

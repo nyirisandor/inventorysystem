@@ -33,6 +33,8 @@ export const DocumentUploadDialog = ({openState} : {openState? : [isOpen : boole
     useEffect(() => {
         form.reset();
         setFileInputValue("");
+        setUploadProgress(null);
+        setIsUploading(false);
 
         if(!isOpen && isUploading && cancelFunctionRef.current){
             cancelFunctionRef.current();
@@ -67,13 +69,10 @@ export const DocumentUploadDialog = ({openState} : {openState? : [isOpen : boole
             setFileInputValue("");
             setOpen(false);
         })
-        .catch((err) => {
-            console.error(err);
-        })
-        .finally(() => {
-            setIsUploading(false);
+        .catch(() => {
             setUploadProgress(null);
-        });
+            setIsUploading(false);
+        })
     }
 
 
@@ -87,42 +86,39 @@ export const DocumentUploadDialog = ({openState} : {openState? : [isOpen : boole
                 <Form {...form}>
                     <form onSubmit={form.handleSubmit(onSubmit)}>
                         <FormField
-                            disabled={isUploading}
                             control={form.control}
                             name="title"
                             render={({field}) => (
                                 <FormItem>
                                     <FormLabel>Név:</FormLabel>
                                     <FormControl>
-                                        <Input placeholder="név" {...field}/>
+                                        <Input disabled={isUploading} placeholder="név" {...field}/>
                                     </FormControl>
                                 </FormItem>
                             )}
                         />
 
                         <FormField
-                            disabled={isUploading}
                             control={form.control}
                             name="description"
                             render={({field}) => (
                                 <FormItem>
                                     <FormLabel>Leírás:</FormLabel>
                                     <FormControl>
-                                        <Input placeholder="Leírás" {...field}/>
+                                        <Input disabled={isUploading} placeholder="Leírás" {...field}/>
                                     </FormControl>
                                 </FormItem>
                             )}
                         />
 
                         <FormField
-                            disabled={isUploading}
                             control={form.control}
                             name="fileName"
                             render={({field}) => (
                                 <FormItem>
                                     <FormLabel>Fájl neve:</FormLabel>
                                     <FormControl>
-                                        <Input placeholder={form.getValues().file?.name || "Fájl neve"} {...field}/>
+                                        <Input disabled={isUploading} placeholder={form.getValues().file?.name || "Fájl neve"} {...field}/>
                                     </FormControl>
                                 </FormItem>
                             )}
@@ -131,7 +127,6 @@ export const DocumentUploadDialog = ({openState} : {openState? : [isOpen : boole
 
 
                         <FormField
-                            disabled={isUploading}
                             control={form.control}
                             name="file"
                             render={( {field : {value,onChange, ...fieldProps }}) => (
@@ -139,6 +134,7 @@ export const DocumentUploadDialog = ({openState} : {openState? : [isOpen : boole
                                     <FormLabel>Fájl:</FormLabel>
                                     <FormControl>
                                     <Input
+                                        disabled={isUploading}
                                         value={fileInputValue}
                                         {...fieldProps}
                                         type="file"
