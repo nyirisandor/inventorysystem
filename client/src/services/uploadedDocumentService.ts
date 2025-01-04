@@ -1,6 +1,7 @@
 import { isDeveloperMode } from "@/lib/utils";
 import { UploadedDocumentEntry } from "@/types/uploadeddocument";
-import axios, { AxiosError } from "axios";
+import axios, { AxiosError, AxiosProgressEvent, AxiosRequestConfig, CancelToken, CancelTokenSource } from "axios";
+import { Ref } from "react";
 
 
 const getUploadedDocuments = async () : Promise<UploadedDocumentEntry[]> => {
@@ -22,24 +23,48 @@ const getUploadedDocuments = async () : Promise<UploadedDocumentEntry[]> => {
     }
 }
 
-const uploadDocument = async ({title,description,fileName,file} : {title : string, description : string, fileName : string,file : File}) : Promise<UploadedDocumentEntry[]> => {
+
+type UploadDocumentParameters = {
+    values : {
+        title : string
+        description : string,
+        fileName : string,
+        file : File
+    },
+    onProgress? : (progressEvent: AxiosProgressEvent) => void,
+    cancelFunctionRef? : React.MutableRefObject<Function | undefined>,
+}
+
+const uploadDocument = async (params : UploadDocumentParameters) : Promise<UploadedDocumentEntry[]> => {
     try{
         const formData = new FormData();
 
-        if(title.length > 0){
-            formData.append("title",title);
+        if(params.values.title.length > 0){
+            formData.append("title",params.values.title);
         }
     
-        formData.append("description",description);
+        formData.append("description",params.values.description);
     
-        if(fileName.length > 0){
-            formData.append("fileName",fileName);
+        if(params.values.fileName.length > 0){
+            formData.append("fileName",params.values.fileName);
         }
     
-        const buffer = await file.text();
-        formData.append("file",new Blob([buffer]),file.name);
+        const buffer = await params.values.file.text();
+        formData.append("file",new Blob([buffer]),params.values.file.name);
 
-        const res = await axios.post("/api/documents/upload",formData);
+
+        const cancelToken = new axios.CancelToken((c) => {
+            if(params.cancelFunctionRef)
+                params.cancelFunctionRef.current = c
+        })
+
+
+        const requestConfig : AxiosRequestConfig = {};
+        requestConfig.onUploadProgress = params.onProgress;
+        requestConfig.cancelToken = cancelToken;
+        requestConfig.timeout = -1;
+
+        const res = await axios.post("/api/documents/upload",formData,requestConfig);
 
         return res.data;
     }

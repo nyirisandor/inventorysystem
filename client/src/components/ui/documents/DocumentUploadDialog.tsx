@@ -4,9 +4,13 @@ import { Button } from "../button";
 import {z} from "zod";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useForm } from "react-hook-form";
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { uploadDocument } from "@/services/uploadedDocumentService";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "../dialog";
+import { AxiosProgressEvent } from "axios";
+import { Progress } from "../progress";
+import { Label } from "../label";
+import { icons } from "lucide-react";
 
 const formSchema = z.object({
     title : z.string(),
@@ -20,9 +24,19 @@ export const DocumentUploadDialog = ({openState} : {openState? : [isOpen : boole
 
     const [isOpen,setOpen] = openState || useState<boolean>(false);
 
+    const [isUploading, setIsUploading] = useState<boolean>(false);
+
+    const [uploadProgress,setUploadProgress] = useState<AxiosProgressEvent|null>();
+
+    const cancelFunctionRef = useRef<Function>();
+
     useEffect(() => {
         form.reset();
         setFileInputValue("");
+
+        if(!isOpen && isUploading && cancelFunctionRef.current){
+            cancelFunctionRef.current();
+        }
     },[isOpen]);
 
 
@@ -40,7 +54,14 @@ export const DocumentUploadDialog = ({openState} : {openState? : [isOpen : boole
 
 
     async function onSubmit(values : z.infer<typeof formSchema>){
-        uploadDocument(values)
+        setIsUploading(true);
+        uploadDocument({
+            values,
+            onProgress: (progressEvent: AxiosProgressEvent) => {
+                    setUploadProgress(progressEvent);
+            },
+            cancelFunctionRef : cancelFunctionRef
+        })
         .then(() => {
             form.reset();
             setFileInputValue("");
@@ -49,6 +70,10 @@ export const DocumentUploadDialog = ({openState} : {openState? : [isOpen : boole
         .catch((err) => {
             console.error(err);
         })
+        .finally(() => {
+            setIsUploading(false);
+            setUploadProgress(null);
+        });
     }
 
 
@@ -62,6 +87,7 @@ export const DocumentUploadDialog = ({openState} : {openState? : [isOpen : boole
                 <Form {...form}>
                     <form onSubmit={form.handleSubmit(onSubmit)}>
                         <FormField
+                            disabled={isUploading}
                             control={form.control}
                             name="title"
                             render={({field}) => (
@@ -75,6 +101,7 @@ export const DocumentUploadDialog = ({openState} : {openState? : [isOpen : boole
                         />
 
                         <FormField
+                            disabled={isUploading}
                             control={form.control}
                             name="description"
                             render={({field}) => (
@@ -88,6 +115,7 @@ export const DocumentUploadDialog = ({openState} : {openState? : [isOpen : boole
                         />
 
                         <FormField
+                            disabled={isUploading}
                             control={form.control}
                             name="fileName"
                             render={({field}) => (
@@ -103,6 +131,7 @@ export const DocumentUploadDialog = ({openState} : {openState? : [isOpen : boole
 
 
                         <FormField
+                            disabled={isUploading}
                             control={form.control}
                             name="file"
                             render={( {field : {value,onChange, ...fieldProps }}) => (
@@ -123,9 +152,20 @@ export const DocumentUploadDialog = ({openState} : {openState? : [isOpen : boole
                                 </FormItem>
                             )}
                         />
-                        <Button type="submit">Feltöltés</Button>
+                        <Button type="submit" disabled={isUploading}>Feltöltés</Button>
                     </form>
                 </Form>
+                    {(isUploading) ?
+                        <>
+                            <Progress value={(uploadProgress?.progress || 0)*100 }/>
+                            <Label>{((uploadProgress?.progress || 0)*100).toFixed(0)}%</Label>
+                            <Button onClick={() => {if(cancelFunctionRef.current) cancelFunctionRef.current()}}>
+                                <icons.X/>
+                            </Button>
+                        </>
+                        :
+                        null
+                    }
             </DialogContent>
         </Dialog>
     </>
