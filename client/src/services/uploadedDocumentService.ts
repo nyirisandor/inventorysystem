@@ -1,80 +1,102 @@
+import { isDeveloperMode } from "@/lib/utils";
 import { UploadedDocumentEntry } from "@/types/uploadeddocument";
+import axios, { AxiosError } from "axios";
 
 
 const getUploadedDocuments = async () : Promise<UploadedDocumentEntry[]> => {
-    const res = await fetch("/api/documents");
-    const json = await res.json();
+    try{
+        const res = await axios.get("/api/documents");
 
-    if(res.status != 200) throw new Error(json.message);
+        return res.data as UploadedDocumentEntry[]
+    }
+    catch(err){
+        if(isDeveloperMode())
+            console.error("Error while getting uploaded documents:", err);
 
-    return json;
+        if(err instanceof AxiosError && err.response){
+            return Promise.reject(err.response.data);
+        }
+        else{
+            return Promise.reject();
+        }
+    }
 }
 
 const uploadDocument = async ({title,description,fileName,file} : {title : string, description : string, fileName : string,file : File}) : Promise<UploadedDocumentEntry[]> => {
+    try{
+        const formData = new FormData();
 
-    const formData = new FormData();
-
-    if(title.length > 0){
-        formData.append("title",title);
-    }
-
-    formData.append("description",description);
-
-    if(fileName.length > 0){
-        formData.append("fileName",fileName);
-    }
-
-    const buffer = await file.text();
-    formData.append("file",new Blob([buffer]),file.name);
+        if(title.length > 0){
+            formData.append("title",title);
+        }
     
-    const res = await fetch("/api/documents/upload",{
-        method : "POST",
-        body : formData,
-    })
+        formData.append("description",description);
     
-    if(res.status == 200){
-        return await res.json();
+        if(fileName.length > 0){
+            formData.append("fileName",fileName);
+        }
+    
+        const buffer = await file.text();
+        formData.append("file",new Blob([buffer]),file.name);
+
+        const res = await axios.post("/api/documents/upload",formData);
+
+        return res.data;
     }
-    else{
-        throw Error(await res.json());
+    catch(err){
+        if(isDeveloperMode())
+            console.error("Error while updating documentEntry:", err);
+
+        if(err instanceof AxiosError && err.response){
+            return Promise.reject(err.response.data);
+        }
+        else{
+            return Promise.reject();
+        }
     }
 }
 
 const updateUploadedDocumentEntry = async (value : UploadedDocumentEntry) : Promise<any> => {
+    try{
+        const body = {
+            title : value.title,
+            description : value.description
+        };
 
-    const headers = new Headers();
-    headers.append("Content-Type", "application/json");
+        const res = await axios.put(`/api/documents/${value.ID}`,body);
 
-    const body = {
-        title : value.title,
-        description : value.description
-    };
-
-
-    const res = await fetch(`/api/documents/${value.ID}`,{
-        headers,
-        method: "PUT",
-        body : JSON.stringify(body)
-    });
-
-    var json = await res.json();
-
-    if(res.status == 200){
-        return json;
+        return res.data;
     }
-    else{
-        throw new Error(json);
+    catch(err){
+        if(isDeveloperMode())
+            console.error("Error while updating documentEntry:", err);
+
+        if(err instanceof AxiosError && err.response){
+            return Promise.reject(err.response.data);
+        }
+        else{
+            return Promise.reject();
+        }
     }
 }
 
 const deleteDocument = async  (documentID : number) : Promise<any> => {
-    var res = await fetch(`/api/documents/${documentID}`,{
-        method : "DELETE"
-    })
+    try{
+        const res = await axios.delete(`/api/documents/${documentID}`);
 
-    var json = await res.json();
+        return res.data;
+    }
+    catch(err){
+        if(isDeveloperMode())
+            console.error("Error while deleting documentEntry:", err);
 
-    return json;
+        if(err instanceof AxiosError && err.response){
+            return Promise.reject(err.response.data);
+        }
+        else{
+            return Promise.reject();
+        }
+    }
 }
     
 
