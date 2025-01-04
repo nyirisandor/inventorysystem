@@ -1,109 +1,92 @@
+import { isDeveloperMode } from "@/lib/utils";
 import { User } from "@/types/user";
+import axios, { AxiosError } from "axios";
 
 
 const RegisterUser = async (username : string, password : string) : Promise<string> => {
     try{
-        const headers = new Headers();
-        headers.append("Content-Type", "application/json");
-
         const body = {
             username : username,
             password : password
         };
 
-        const response = await fetch("/api/user/register",{
-            headers : headers,
-            method: 'post',
+        const response = await axios.post('/api/user/register',body);
 
-            body : JSON.stringify(body)
-        });
-
-        const json = await response.json();
-
-        if(response.status != 201){
-            return Promise.reject(json.message);
-        }
-
-        return json.token;
+        return response.data.token;
 
     }
     catch(err){
-        console.error("Register error:", err);
-        return Promise.reject();
+        if(isDeveloperMode())
+            console.error("Error during registration:", err);
+
+        if(err instanceof AxiosError && err.response){
+            return Promise.reject(err.response.data.message);
+        }
+        else{
+            return Promise.reject();
+        }
     }
 }
 
 const LoginUser = async (username : string, password : string) : Promise<string> => {
     try{
-        const headers = new Headers();
-        headers.append("Content-Type", "application/json");
-
         const body = {
             username : username,
             password : password
         };
 
-        const response = await fetch("/api/user/login",{
-            headers : headers,
-            method: 'post',
+        const response = await axios.post("/api/user/login",body)
 
-            body : JSON.stringify(body)
-        });
-
-        const json = await response.json();
-
-
-        if(response.status != 200){
-            return Promise.reject(json.message);
-        }
-
-        return json.token;
+        return response.data.token;
 
     }
     catch(err){
-        console.error("Login error:", err);
-        return Promise.reject();
+        if(isDeveloperMode())
+            console.error("Error during login:", err);
+
+        if(err instanceof AxiosError && err.response){
+            return Promise.reject(err.response.data.message);
+        }
+        else{
+            return Promise.reject();
+        }
     }
 }
 
 const GetCurrentUser = async () : Promise<User|null> => {
     try{
-        const response = await fetch("/api/user",{
-            method: 'get',
-            credentials : "same-origin"
-        });
+        const response = await axios.get("/api/user");
 
-        const json = await response.json();
-
-        if(response.status == 401){
-            return null
-        }
-
-        if(response.status != 200){
-            return Promise.reject(json.message);
-        }
-
-        return json.user as User;
-
+        return response.data.user as User;
     }
     catch(err){
-        console.error("Login error:", err);
-        return Promise.reject();
+        if(isDeveloperMode())
+            console.error("Error while getting current user:", err);
+
+        if(err instanceof AxiosError && err.response){
+            return Promise.reject(err.response.data);
+        }
+        else{
+            return Promise.reject();
+        }
     }
 }
 
 const LogoutUser = async () : Promise<void> =>{
+    try{
+        await axios.post("/api/user/logout");
+    }    
+    catch(err){
+        if(isDeveloperMode())
+            console.error("Error while logging out:", err);
 
-    const response = await fetch("/api/user/logout",{
-        method: 'post'
-    });
-
-    if(response.status != 200){
-        return Promise.reject(response.body)
+        if(err instanceof AxiosError && err.response){
+            return Promise.reject(err.response.data);
+        }
+        else{
+            return Promise.reject();
+        }
     }
-
-    return Promise.resolve();
-
 }
 
 export {RegisterUser,LoginUser,GetCurrentUser,LogoutUser};
