@@ -5,73 +5,99 @@ import { Toaster } from "../toaster";
 import { icons } from "lucide-react";
 import { Button } from "../button";
 import useDownloader from "react-use-downloader"
-import { toast } from "@/hooks/use-toast";
 import { Progress } from "../progress";
 import { Label } from "../label";
+import { getUploadedDocuments, deleteDocument } from "@/services/uploadedDocumentService";
 
 
-export const DocumentTable = () =>{
+const DownloadButton = ({documentEntry} : {documentEntry : UploadedDocumentEntry}) => {
+
+    const {
+        //size,
+        //elapsed,
+        percentage,
+        download,
+        cancel,
+        //error,
+        isInProgress
+      } = useDownloader();
+
+
+
+    if(isInProgress){
+        return (<>
+            <Progress value={percentage}></Progress>
+            <Label>{percentage}%</Label>
+            <Button onClick={()=>cancel()}><icons.X/></Button>
+            </>);
+    }
+    else{
+        return (<>
+            <Button disabled={documentEntry.size == null || documentEntry.size ==0} onClick={() => {download(`/api/documents/${documentEntry.ID}/download`,documentEntry.url)}}>
+                <icons.Download/>
+            </Button>
+        </>)
+    }
+}
+
+
+
+const DocumentTableRow = ({documentEntry, refreshTable, onEditing} : {documentEntry : UploadedDocumentEntry, refreshTable? : Function, onEditing? : Function}) => {
+
+    function deleteDocumentLine(){
+        deleteDocument(documentEntry.ID)
+            .then((res) => {
+                console.log(res);
+            })
+            .catch((err) => {
+                console.error(err);
+            })
+            .finally(() => {
+                if(refreshTable != undefined){
+                    refreshTable();
+                }
+            })
+    }
+
+
+    return (
+        <TableRow key={documentEntry.ID}>
+            <TableCell className="font-medium">{documentEntry.title}</TableCell>
+            <TableCell>{documentEntry.description}</TableCell>
+            <TableCell>{documentEntry.url}</TableCell>
+            <TableCell>{documentEntry.size}</TableCell>
+            <TableCell>{documentEntry.warning}</TableCell>
+            <TableCell>
+                <DownloadButton documentEntry={documentEntry}/>
+            </TableCell>
+            <TableCell>
+                <Button onClick={() => {if(onEditing) onEditing()}}>
+                    <icons.Pencil/>
+                </Button>
+
+                <Button onClick={() => deleteDocumentLine()}>
+                    <icons.Trash/>
+                </Button>
+            </TableCell>
+        </TableRow>
+    )
+}
+
+
+export const DocumentTable = ({onRowEditing, onNewRow} : {onRowEditing? : (doc : UploadedDocumentEntry)=>any, onNewRow? : Function}) =>{
 
     const [uploadedDocuments, setUploadedDocuments] = useState<UploadedDocumentEntry[]>([]);
 
     useEffect(() => {
-        updateDocuments();
+        RefreshTableData();
     },[]);
 
-    function updateDocuments(){
-        fetch("/api/documents").then(res => {
-            if(res.status == 200){
-                return res.json();
-            }
-        })
-        .then(json => {
-            setUploadedDocuments(json);
-        })
-      }
 
-    
-    function deleteDocument(documentID : number){
-        fetch(`/api/documents/${documentID}`,{
-            method : "DELETE"
-        }).then(res => {
-            return res.json();
-        })
-        .then(json => {
-            console.log(json);
-            updateDocuments();
-        })
-      }
-
-
-    const DownloadButton = ({targetDocument} : {targetDocument : UploadedDocumentEntry}) => {
-
-        const {
-            size,
-            elapsed,
-            percentage,
-            download,
-            cancel,
-            error,
-            isInProgress
-          } = useDownloader();
-
-
-
-        if(isInProgress){
-            return (<>
-            <Progress value={percentage}></Progress>
-                <Label>{percentage}%</Label>
-                <Button onClick={()=>cancel()}><icons.X/></Button>
-                </>);
-        }
-        else{
-            return (<>
-                <Button disabled={targetDocument.size == null || targetDocument.size ==0} onClick={() => {download(`/api/documents/${targetDocument.ID}/download`,targetDocument.url)}}>
-                    <icons.Download/>
-                </Button>
-            </>)
-        }
-    }
+    function RefreshTableData(){
+        getUploadedDocuments()
+            .then((res) => setUploadedDocuments(res))
+            .catch((err) => console.error(err));
+    };
 
 
     return <>
@@ -88,26 +114,15 @@ export const DocumentTable = () =>{
 
             <TableBody>
                 {uploadedDocuments.map((doc) => (
-
-                    <TableRow key={doc.ID}>
-                        <TableCell className="font-medium">{doc.title}</TableCell>
-                        <TableCell>{doc.description}</TableCell>
-                        <TableCell>{doc.url}</TableCell>
-                        <TableCell>{doc.size}</TableCell>
-                        <TableCell>{doc.warning}</TableCell>
-                        <TableCell>
-                            <DownloadButton targetDocument={doc}/>
-                        </TableCell>
-
-                        <TableCell>
-                            <Button onClick={() => deleteDocument(doc.ID)}>
-                                <icons.Trash/>
-                            </Button>
-                        </TableCell>
-                    </TableRow>
-
-
+                    <DocumentTableRow key={doc.ID} documentEntry={doc} refreshTable={RefreshTableData} onEditing={() => {if(onRowEditing) onRowEditing(doc)}}/>
                 ))}
+                <TableRow>
+                    <TableCell colSpan={10} align="center">
+                        <Button onClick={() => {if(onNewRow) onNewRow()}}>
+                            <icons.Plus/>
+                        </Button>
+                    </TableCell>
+                </TableRow>
             </TableBody>
         </Table>
     </>
