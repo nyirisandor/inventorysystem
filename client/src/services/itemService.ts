@@ -1,36 +1,49 @@
+import { isDeveloperMode } from "@/lib/utils";
 import { Item, ItemEntry } from "@/types/item";
 import { ItemPrice } from "@/types/itemprice";
 import { ItemType } from "@/types/itemtype";
+import axios, { AxiosError } from "axios";
 
 const getItemByID = async (itemID : number) : Promise<Item> => {
     try{
-        const itemEntry = await (fetch(`/api/items/${itemID}`).then(res => {
-            if(res.status != 200) throw new Error(res.statusText);
-            return res.json();
-        })) as ItemEntry;
 
-        const itemType = await (fetch(`/api/itemTypes/${itemEntry.typeID}`).then(res => {
-            return res.json();
-        })) as ItemType;
-
-        const latestPrice = await (fetch(`/api/items/${itemEntry.typeID}/latestprice`).then(res => {
-            return res.json();
-        })) as ItemPrice
+        const itemEntry = (await axios.get(`/api/items/${itemID}`)).data as ItemEntry;
 
         const item = {
             ID : itemEntry.ID,
             name : itemEntry.name,
             description : itemEntry.description,
-            type : itemType,
-            latestPrice : latestPrice
+            type : {ID : -1, name : "Hibás kategória"},
+            latestPrice : null
         } as Item;
 
-        return item;
+        await axios.get(`/api/itemTypes/${itemEntry.typeID}`).then((res) => {
+            item.type = res.data as ItemType
+        })
+        .catch((err : AxiosError) => {
+            if(err.status != 404) throw err;
+        });
 
+        await axios.get(`/api/items/${itemEntry.typeID}/latestprice`).then((res) => {
+            item.latestPrice = res.data as ItemPrice
+        })
+        .catch((err : AxiosError) => {
+            if(err.status != 404) throw err;
+        });
+
+
+        return item;
     }
     catch(err){
-        console.error("Error fetching products:", err);
-        return Promise.reject();
+        if(isDeveloperMode())
+            console.error("Error fetching products:", err);
+
+        if(err instanceof AxiosError && err.response){
+            return Promise.reject(err.response.data);
+        }
+        else{
+            return Promise.reject();
+        }
     }
 }
 
@@ -58,51 +71,66 @@ const getItems = async () : Promise<Item[]> => {
 
         return items;
     }
-    catch{
-        return Promise.reject();
+    catch (err){
+        if(err instanceof AxiosError && err.response){
+            return Promise.reject(err.response.data);
+        }
+        else{
+            return Promise.reject();
+        }
     }
 }
 
 const getItemEntries = async () : Promise<ItemEntry[]> => {
     try{
-        const response = await fetch("/api/items");
+        const res = await axios.get("/api/items");
 
-        if(response.status == 200){
-            return await response.json() as ItemEntry[];
-        }
-        else{
+        if(res.status == 200)
+            return res.data as ItemEntry[];
+        else
             return [];
-        }
     }
     catch(err){
-        console.error("Error fetching products:", err);
-        return Promise.reject();
+        if(isDeveloperMode())
+            console.error("Error fetching items:", err);
+
+        if(err instanceof AxiosError && err.response){
+            return Promise.reject(err.response.data);
+        }
+        else{
+            return Promise.reject();
+        }
     }
 }
 
 const getItemTypes = async () : Promise<ItemType[]> => {
     try{
-        const response = await fetch(`/api/itemtypes`);
+        const res = await axios.get("/api/itemtypes");
 
-        if(response.status == 200){
-            return await response.json() as ItemType[];
-        }
-        else{
-            return []
-        }
+        if(res.status == 200)
+            return res.data as ItemType[];
+        else
+            return [];
     }
     catch(err){
-        console.error("Error fetching products:", err);
-        return Promise.reject();
+        if(isDeveloperMode())
+            console.error("Error fetching itemtypes:", err);
+
+        if(err instanceof AxiosError && err.response){
+            return Promise.reject(err.response.data);
+        }
+        else{
+            return Promise.reject();
+        }
     }
 }
 
 const getItemType = async (typeID : number) : Promise<ItemType |null> => {
     try{
-        const response = await fetch(`/api/itemtypes/${typeID}`);
+        const response = await axios.get(`/api/itemtypes/${typeID}`);
 
         if(response.status == 200){
-            return await response.json() as ItemType;
+            return await response.data as ItemType;
         }
         else{
             return {
@@ -112,90 +140,82 @@ const getItemType = async (typeID : number) : Promise<ItemType |null> => {
         }
     }
     catch(err){
-        console.error("Error", err);
-        return null;
+        if(isDeveloperMode())
+            console.error("Error fetching itemtype:", err);
+
+        if(err instanceof AxiosError && err.response){
+            return Promise.reject(err.response.data);
+        }
+        else{
+            return Promise.reject();
+        }
     }
 }
 
 const createItem = async (item : {name : string, description : string, typeID : number|null}) : Promise<ItemEntry> => {
     try{
-
-        const headers = new Headers();
-
-        headers.append("Content-Type", "application/json");
-
         const body = {
             'name' : item.name,
             'description' : item.description,
             'typeID' : item.typeID
         }
 
-        const response = await fetch("/api/items", {
-            method : 'post',
-            body : JSON.stringify(body),
-            headers : headers,
-            credentials : "same-origin"
-        });
+        const response = await axios.post("/api/items",body)
 
-        if(response.status == 201){
-            return await response.json() as ItemEntry;
-        }
-        else{
-            return Promise.reject(response);
-        }
+        return response.data as ItemEntry;
     }
     catch(err){
-        console.error("Error",err);
-        return Promise.reject();
+        if(isDeveloperMode())
+            console.error("Error creating item:", err);
+
+        if(err instanceof AxiosError && err.response){
+            return Promise.reject(err.response.data);
+        }
+        else{
+            return Promise.reject();
+        }
     }
 }
 
 const updateItemEntry = async (itemEntry : ItemEntry) : Promise<ItemEntry> => {
     try {
-        const headers = new Headers();
-
-        headers.append("Content-Type", "application/json");
-
         const body = {
             name : itemEntry.name,
             description : itemEntry.description,
             typeID : itemEntry.typeID
         };
 
-        const response = await fetch(`/api/items/${itemEntry.ID}`,{
-            method : 'put',
-            headers : headers,
-            body : JSON.stringify(body),
-        })
+        const response = await axios.put(`/api/items/${itemEntry.ID}`,body);
 
-        if(response.status == 200){
-            return await response.json() as ItemEntry;
-        }
-        else{
-            return Promise.reject(await response.json());
-        }
+        return response.data as ItemEntry;
     }
     catch(err){
-        console.error(err);
-        return Promise.reject();  
+        if(isDeveloperMode())
+            console.error("Error updating item:", err);
+
+        if(err instanceof AxiosError && err.response){
+            return Promise.reject(err.response.data);
+        }
+        else{
+            return Promise.reject();
+        }
     }
 }
 
 const deleteItem = async (itemID : number) : Promise<void> => {
     try{
-        const response = await fetch(`/api/items/${itemID}`,{
-            method : 'delete'
-        });
-
-        if(response.status != 200){
-            return Promise.reject(await response.json());
-        }
-
-        return Promise.resolve();
+        await axios.delete(`/api/items/${itemID}`);
     }
     catch(err){
-        console.error("Error",err);
-        return Promise.reject();
+        if(isDeveloperMode())
+            console.error("Error deleting item:", err);
+
+        if(err instanceof AxiosError && err.response){
+            return Promise.reject(err.response.data);
+        }
+        else{
+            return Promise.reject();
+        }
     }
 }
 

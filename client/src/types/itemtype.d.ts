@@ -1,4 +1,4 @@
 export interface ItemType{
     ID : number,
-    name : teszt
+    name : string
 }
