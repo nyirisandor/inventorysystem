@@ -1,4 +1,6 @@
 
+import { NewNoteForm } from "@/components/ui/itemNotes/NewNoteForm";
+import { NoteEntry } from "@/components/ui/itemNotes/NoteEntry";
 import { Toaster } from "@/components/ui/toaster";
 import { useToast } from "@/hooks/use-toast";
 import { getItemByID } from "@/services/itemService";
@@ -38,6 +40,11 @@ const ItemDetailsPage = () => {
             <h1>{item.name}</h1>
             <p>ID : {item.ID}</p>
             <p>Leírás: {item.description}</p>
+            <div className="notes">
+                <h2>Megjegyzések</h2>
+                <NewNoteForm itemID={item.ID}/>
+                {item.notes.map(x => <NoteEntry itemNote={x} key={x.ID}/>)}
+            </div>
             </>)
             :
             (<h1></h1>)

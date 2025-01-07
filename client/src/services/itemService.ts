@@ -2,6 +2,7 @@ import { isDeveloperMode } from "@/lib/utils";
 import { Item, ItemEntry } from "@/types/item";
 import { ItemPrice } from "@/types/itemprice";
 import { ItemType } from "@/types/itemtype";
+import { ItemNote } from "@/types/itemnote";
 import axios, { AxiosError } from "axios";
 
 const getItemByID = async (itemID : number) : Promise<Item> => {
@@ -24,10 +25,18 @@ const getItemByID = async (itemID : number) : Promise<Item> => {
             if(err.status != 404) throw err;
         });
 
-        await axios.get(`/api/items/${itemEntry.typeID}/latestprice`).then((res) => {
+        await axios.get(`/api/items/${itemEntry.ID}/latestprice`).then((res) => {
             item.latestPrice = res.data as ItemPrice
         })
         .catch((err : AxiosError) => {
+            if(err.status != 404) throw err;
+        });
+
+        await axios.get(`/api/items/${itemEntry.ID}/notes`).then((res) => {
+            item.notes = res.data as ItemNote[];
+        })
+        .catch((err : AxiosError) => {
+            item.notes = [];
             if(err.status != 404) throw err;
         });
 
