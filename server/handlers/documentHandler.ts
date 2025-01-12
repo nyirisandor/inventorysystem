@@ -67,12 +67,18 @@ export default class DocumentHandler{
             const resultEntry = await this.documentDataAccess.CreateUploadedDocument({
                 url : fileName,
                 title : title,
-                description : description
+                description : description,
             });
 
             await file.mv(filePath);
 
-            res.status(200).json(resultEntry);
+            const result = resultEntry as UploadedDocumentEntry & {
+                size : Number
+            }
+
+            result.size = statSync('./uploads/' + resultEntry.url).size;
+
+            res.status(200).json(result);
         }
         catch(e){
             switch(e.code){

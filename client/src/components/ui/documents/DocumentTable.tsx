@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react"
+import { useRef, useState } from "react"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "../table"
 import { UploadedDocumentEntry } from "@/types/uploadeddocument"
 import { Toaster } from "../toaster";
@@ -7,7 +7,10 @@ import { Button } from "../button";
 import useDownloader from "react-use-downloader"
 import { Progress } from "../progress";
 import { Label } from "../label";
-import { getUploadedDocuments, deleteDocument } from "@/services/uploadedDocumentService";
+import { deleteDocument } from "@/services/uploadedDocumentService";
+import { DocumentEntryReducerActionType, useDocumentReducerContext } from "@/hooks/documentEntryReducer";
+import { DocumentUploadDialog } from "./DocumentUploadDialog";
+import { DocumentEditDialog } from "./DocumentEditDialog";
 
 
 const DownloadButton = ({documentEntry} : {documentEntry : UploadedDocumentEntry}) => {
@@ -42,7 +45,9 @@ const DownloadButton = ({documentEntry} : {documentEntry : UploadedDocumentEntry
 
 
 
-const DocumentTableRow = ({documentEntry, refreshTable, onEditing} : {documentEntry : UploadedDocumentEntry, refreshTable? : Function, onEditing? : Function}) => {
+const DocumentTableRow = ({documentEntry, onEditClicked} : {documentEntry : UploadedDocumentEntry, onEditClicked? : Function}) => {
+
+    const [uploadedDocuments, uploadedDocumentsDispatch] = useDocumentReducerContext();
 
     function deleteDocumentLine(){
         deleteDocument(documentEntry.ID)
@@ -53,9 +58,10 @@ const DocumentTableRow = ({documentEntry, refreshTable, onEditing} : {documentEn
                 console.error(err);
             })
             .finally(() => {
-                if(refreshTable != undefined){
-                    refreshTable();
-                }
+                uploadedDocumentsDispatch({
+                    type : DocumentEntryReducerActionType.DELETED_DOCUMENT,
+                    data : [documentEntry]
+                })
             })
     }
 
@@ -71,7 +77,7 @@ const DocumentTableRow = ({documentEntry, refreshTable, onEditing} : {documentEn
                 <DownloadButton documentEntry={documentEntry}/>
             </TableCell>
             <TableCell>
-                <Button onClick={() => {if(onEditing) onEditing()}}>
+                <Button onClick={() => {if(onEditClicked) onEditClicked()}}>
                     <icons.Pencil/>
                 </Button>
 
@@ -84,24 +90,28 @@ const DocumentTableRow = ({documentEntry, refreshTable, onEditing} : {documentEn
 }
 
 
-export const DocumentTable = ({onRowEditing, onNewRow} : {onRowEditing? : (doc : UploadedDocumentEntry)=>any, onNewRow? : Function}) =>{
+export const DocumentTable = () =>{
 
-    const [uploadedDocuments, setUploadedDocuments] = useState<UploadedDocumentEntry[]>([]);
+    const [uploadedDocuments, uploadedDocumentsDispatch] = useDocumentReducerContext();
 
-    useEffect(() => {
-        RefreshTableData();
-    },[]);
+    const selectedDocumentRef = useRef<UploadedDocumentEntry|null>(null);
+    const [isUploadDialogOpen,setUploadDialogOpen] = useState<boolean>(false)
+    const [isEditDialogOpen,setEditDialogOpen] = useState<boolean>(false)
 
+    function openPopupforDocument(doc : UploadedDocumentEntry){
+        selectedDocumentRef.current = doc;
+        setEditDialogOpen(true);
+    }
 
-    function RefreshTableData(){
-        getUploadedDocuments()
-            .then((res) => setUploadedDocuments(res))
-            .catch((err) => console.error(err));
-    };
+    function openPopupforNew(){
+        setUploadDialogOpen(true);
+    }
 
 
     return <>
         <Toaster/>
+        <DocumentUploadDialog openState={[isUploadDialogOpen,setUploadDialogOpen]}/>
+        <DocumentEditDialog openState={[isEditDialogOpen,setEditDialogOpen]} documentRef={selectedDocumentRef}/>
         <Table>
             <TableHeader onContextMenu={(e) => e.preventDefault()}>
                 <TableRow>
@@ -114,11 +124,11 @@ export const DocumentTable = ({onRowEditing, onNewRow} : {onRowEditing? : (doc :
 
             <TableBody>
                 {uploadedDocuments.map((doc) => (
-                    <DocumentTableRow key={doc.ID} documentEntry={doc} refreshTable={RefreshTableData} onEditing={() => {if(onRowEditing) onRowEditing(doc)}}/>
+                    <DocumentTableRow key={doc.ID} documentEntry={doc} onEditClicked={() => {openPopupforDocument(doc)}}/>
                 ))}
                 <TableRow>
                     <TableCell colSpan={10} align="center">
-                        <Button onClick={() => {if(onNewRow) onNewRow()}}>
+                        <Button onClick={openPopupforNew}>
                             <icons.Plus/>
                         </Button>
                     </TableCell>

@@ -11,6 +11,7 @@ import { AxiosProgressEvent } from "axios";
 import { Progress } from "../progress";
 import { Label } from "../label";
 import { icons } from "lucide-react";
+import { DocumentEntryReducerActionType, useDocumentReducerContext } from "@/hooks/documentEntryReducer";
 
 const formSchema = z.object({
     title : z.string(),
@@ -21,6 +22,8 @@ const formSchema = z.object({
 
 
 export const DocumentUploadDialog = ({openState} : {openState? : [isOpen : boolean, setOpen :React.Dispatch<React.SetStateAction<boolean>>]}) =>{
+
+    const [uploadedDocuments, uploadedDocumentsDispatch] = useDocumentReducerContext();
 
     const [isOpen,setOpen] = openState || useState<boolean>(false);
 
@@ -64,7 +67,11 @@ export const DocumentUploadDialog = ({openState} : {openState? : [isOpen : boole
             },
             cancelFunctionRef : cancelFunctionRef
         })
-        .then(() => {
+        .then((res) => {
+            uploadedDocumentsDispatch({
+                type : DocumentEntryReducerActionType.CREATED_DOCUMENT,
+                data : [res]
+            })
             form.reset();
             setFileInputValue("");
             setOpen(false);

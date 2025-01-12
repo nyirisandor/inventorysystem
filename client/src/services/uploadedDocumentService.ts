@@ -34,7 +34,7 @@ type UploadDocumentParameters = {
     cancelFunctionRef? : React.MutableRefObject<Function | undefined>,
 }
 
-const uploadDocument = async (params : UploadDocumentParameters) : Promise<UploadedDocumentEntry[]> => {
+const uploadDocument = async (params : UploadDocumentParameters) : Promise<UploadedDocumentEntry> => {
     try{
         const formData = new FormData();
 
@@ -89,7 +89,7 @@ const uploadDocument = async (params : UploadDocumentParameters) : Promise<Uploa
     }
 }
 
-const updateUploadedDocumentEntry = async (value : UploadedDocumentEntry) : Promise<any> => {
+const updateUploadedDocumentEntry = async (value : UploadedDocumentEntry) : Promise<UploadedDocumentEntry> => {
     try{
         const body = {
             title : value.title,

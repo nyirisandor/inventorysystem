@@ -8,6 +8,7 @@ import { MutableRefObject, useEffect, useRef, useState } from "react";
 import { UploadedDocumentEntry } from "@/types/uploadeddocument";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "../dialog";
 import { updateUploadedDocumentEntry } from "@/services/uploadedDocumentService";
+import { DocumentEntryReducerActionType, useDocumentReducerContext } from "@/hooks/documentEntryReducer";
 
 const formSchema = z.object({
     title : z.string(),
@@ -17,6 +18,8 @@ const formSchema = z.object({
 
 
 export const DocumentEditDialog = ({documentRef,openState} : {documentRef? : MutableRefObject<UploadedDocumentEntry|null>, openState? : [isOpen : boolean, setOpen :React.Dispatch<React.SetStateAction<boolean>>]}) =>{
+
+    const [uploadedDocuments, uploadedDocumentsDispatch] = useDocumentReducerContext();
 
     const [isOpen,setOpen] = openState || useState<boolean>(false);
     const currentDocumentRef = documentRef || useRef<UploadedDocumentEntry|null>(null);
@@ -47,8 +50,12 @@ export const DocumentEditDialog = ({documentRef,openState} : {documentRef? : Mut
         documentRef.current.description = values.description;
         
         updateUploadedDocumentEntry(documentRef.current)
-        .then(() => {
+        .then((res) => {
             setOpen(false);
+            uploadedDocumentsDispatch({
+                type : DocumentEntryReducerActionType.UPDATED_DOCUMENT,
+                data: [res]
+            })
         })
         .catch((err) => {
             console.error(err);

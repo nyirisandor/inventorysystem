@@ -1,29 +1,32 @@
-import { DocumentEditDialog } from "@/components/ui/documents/DocumentEditDialog"
 import { DocumentTable } from "@/components/ui/documents/DocumentTable"
-import { DocumentUploadDialog } from "@/components/ui/documents/DocumentUploadDialog"
-import { UploadedDocumentEntry } from "@/types/uploadeddocument"
-import { useRef, useState } from "react"
+import { DocumentEntryReducerActionType, DocumentEntryReducerContext, reducer } from "@/hooks/documentEntryReducer"
+import { getUploadedDocuments } from "@/services/uploadedDocumentService";
+import { useEffect, useReducer } from "react"
 
 const DocumentsPage = () => {
 
-    const selectedDocumentRef = useRef<UploadedDocumentEntry|null>(null);
-    const [isUploadDialogOpen,setUploadDialogOpen] = useState<boolean>(false)
-    const [isEditDialogOpen,setEditDialogOpen] = useState<boolean>(false)
+    const documentEntryReducerContext = DocumentEntryReducerContext;
+    const [documentEntries, documentEntryDispatch] = useReducer(reducer,[]);
 
-    function openPopupforDocument(doc : UploadedDocumentEntry){
-        selectedDocumentRef.current = doc;
-        setEditDialogOpen(true);
-    }
+    function RefreshDocuments(){
+        getUploadedDocuments()
+            .then((res) => documentEntryDispatch({
+                type : DocumentEntryReducerActionType.SET_DOCUMENTS,
+                data : res
+            }))
+            .catch((err) => console.error(err));
+    };
 
-    function openPopupforNew(){
-        setUploadDialogOpen(true);
-    }
+    useEffect(() => {
+        RefreshDocuments();
+    },[])
+
 
     return (
         <>
-            <DocumentUploadDialog openState={[isUploadDialogOpen,setUploadDialogOpen]}/>
-            <DocumentEditDialog openState={[isEditDialogOpen,setEditDialogOpen]} documentRef={selectedDocumentRef}/>
-            <DocumentTable onRowEditing={openPopupforDocument} onNewRow={openPopupforNew}/>
+            <documentEntryReducerContext.Provider value={[documentEntries,documentEntryDispatch]}>
+                <DocumentTable/>
+            </documentEntryReducerContext.Provider>
         </>
     )
 }
