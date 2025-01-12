@@ -15,7 +15,8 @@ const getItemByID = async (itemID : number) : Promise<Item> => {
             name : itemEntry.name,
             description : itemEntry.description,
             type : {ID : -1, name : "Hibás kategória"},
-            latestPrice : null
+            latestPrice : null,
+            pricehistory : [] as ItemPrice[]
         } as Item;
 
         await axios.get(`/api/itemTypes/${itemEntry.typeID}`).then((res) => {
@@ -37,6 +38,18 @@ const getItemByID = async (itemID : number) : Promise<Item> => {
         })
         .catch((err : AxiosError) => {
             item.notes = [];
+            if(err.status != 404) throw err;
+        });
+
+        await axios.get(`/api/items/${itemEntry.ID}/prices`).then((res) => {
+            const prices = res.data as ItemPrice[];
+
+            prices.forEach(x => x.date = new Date(x.date));
+
+            item.pricehistory = prices;
+        })
+        .catch((err : AxiosError) => {
+            item.pricehistory = [];
             if(err.status != 404) throw err;
         });
 

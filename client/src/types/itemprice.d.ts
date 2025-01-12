@@ -1,7 +1,7 @@
 export interface ItemPrice {
-    ID: number;
+    ID: number | null;
     itemID : number;
     amount : number;
     currency : string;
-    date : Date;
+    date : Date | null;
 }

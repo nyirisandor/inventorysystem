@@ -108,7 +108,7 @@ export default class ItemPriceHandler {
 
             itemPrice.amount = amount || itemPrice.amount;
             itemPrice.currency = currency || itemPrice.currency;
-            itemPrice.date = date || itemPrice.date;
+            itemPrice.date = new Date(date) || itemPrice.date;
 
             const success = await this.itemPriceDataAccess.UpdateItemPrice(itemPrice);
             if (success) {

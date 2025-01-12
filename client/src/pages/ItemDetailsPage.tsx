@@ -1,6 +1,8 @@
 
 import { NewNoteForm } from "@/components/ui/itemNotes/NewNoteForm";
 import { NoteEntry } from "@/components/ui/itemNotes/NoteEntry";
+import { PriceHistoryChart } from "@/components/ui/itemPrices/PriceHistoryChart";
+import { PriceHistoryTable } from "@/components/ui/itemPrices/PriceHistoryTable";
 import { Toaster } from "@/components/ui/toaster";
 import { useToast } from "@/hooks/use-toast";
 import { getItemByID } from "@/services/itemService";
@@ -45,9 +47,14 @@ const ItemDetailsPage = () => {
                 <NewNoteForm itemID={item.ID}/>
                 {item.notes.map(x => <NoteEntry itemNote={x} key={x.ID}/>)}
             </div>
+            <div className="prices">
+                <h2>Árdiagram</h2>
+                <PriceHistoryChart priceHistory={item.pricehistory}/>
+                <PriceHistoryTable itemID={item.ID} priceHistory={item.pricehistory}/>
+            </div>
             </>)
             :
-            (<h1></h1>)
+            (<h1>Betöltés</h1>)
         }
         
 

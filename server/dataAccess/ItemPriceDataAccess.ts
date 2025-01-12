@@ -1,5 +1,6 @@
 import { Connection, ResultSetHeader } from 'mysql2/promise';
 import { ItemPriceEntry } from '../models/DatabaseModel';
+import moment from 'moment';
 
 export default class ItemPriceDataAccess {
     private connection: Connection;
@@ -40,7 +41,7 @@ export default class ItemPriceDataAccess {
             itemPriceEntry.itemID,
             itemPriceEntry.amount,
             itemPriceEntry.currency,
-            itemPriceEntry.date,
+            moment(itemPriceEntry.date).format("YYYY-MM-DD"),
             itemPriceEntry.ID
         ];
         const [results] = await this.connection.execute<ResultSetHeader>(sql, values);
