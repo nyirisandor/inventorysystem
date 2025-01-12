@@ -17,7 +17,11 @@ const createPriceEntry = async (parameters : {itemID : number, amount : number, 
 
         const response = await axios.post(`/api/items/${parameters.itemID}/prices`,body)
 
-        return response.data as ItemPrice
+        const result = response.data as ItemPrice;
+
+        result.date = new Date(response.data.date);
+
+        return result;
     }
     catch(err){
         if(isDeveloperMode())
@@ -42,7 +46,11 @@ const updatePriceEntry = async (itemPrice : ItemPrice) : Promise<ItemPrice> => {
 
         const response = await axios.put(`/api/itemPrices/${itemPrice.ID}`,body);
 
-        return response.data as ItemPrice;
+        const result = response.data as ItemPrice;
+
+        result.date = new Date(response.data.date);
+
+        return result;
     }
     catch(err){
         if(isDeveloperMode())
