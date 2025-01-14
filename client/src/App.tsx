@@ -25,7 +25,7 @@ function App() {
 
   const itemReducerContext = ItemReducerContext;
 
-  const [cookies, setCookie, removeCookie] = useCookies(['jwtToken'])
+  const [cookies,, removeCookie] = useCookies(['jwtToken'])
 
   const [user, setUser] = useState<User|null>(null);
 
