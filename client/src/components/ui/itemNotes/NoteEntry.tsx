@@ -16,7 +16,7 @@ const formSchema = z.object({
 })
 
 
-export function NoteEntry({itemNote} : {itemNote : ItemNote}) {
+export function NoteEntry({itemNote, onNoteChanged, onNoteDeleted} : {itemNote : ItemNote, onNoteChanged? : (newNote : ItemNote) => any, onNoteDeleted? : (noteID : number) => any}) {
 
     const [isEditing,setIsEditing] = useState<boolean>(false);
 
@@ -40,6 +40,9 @@ export function NoteEntry({itemNote} : {itemNote : ItemNote}) {
                 title: itemNote.title,
                 description : itemNote.description
             });
+            if(onNoteChanged){
+                onNoteChanged(res);
+            }
         })
         .catch((err) => {
             console.error(err);
@@ -50,6 +53,9 @@ export function NoteEntry({itemNote} : {itemNote : ItemNote}) {
     async function onDeleteClicked(){
         deleteNote(itemNote.ID).then((res) => {
             console.log(res);
+            if(onNoteDeleted){
+                onNoteDeleted(itemNote.ID);
+            }
         })
         .catch((err) => {
             console.error(err);

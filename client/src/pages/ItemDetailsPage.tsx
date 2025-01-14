@@ -47,6 +47,18 @@ const ItemDetailsPage = () => {
 
     },[id]);
 
+    function onNoteChanged(newNote : ItemNote){
+        var newNotes = notes;
+        newNotes = newNotes.map(x => x.ID == newNote.ID?newNote:x);
+        setNotes(newNotes);
+    }
+
+    function onNoteDeleted(id : Number){
+        var newNotes = notes;
+        newNotes = newNotes.filter(x => x.ID != id);
+        setNotes(newNotes);
+    }
+
 
     return (
         <>
@@ -59,8 +71,8 @@ const ItemDetailsPage = () => {
             <p>Leírás: {itemEntry.description}</p>
             <div className="notes">
                 <h2>Megjegyzések</h2>
-                <NewNoteForm itemID={itemEntry.ID}/>
-                {notes.map(x => <NoteEntry itemNote={x} key={x.ID}/>)}
+                <NewNoteForm itemID={itemEntry.ID} onNoteCreated={(newNote) => setNotes([...notes,newNote])}/>
+                {notes.map(x => <NoteEntry itemNote={x} key={x.ID} onNoteChanged={onNoteChanged} onNoteDeleted={onNoteDeleted}/>)}
             </div>
             <div className="prices">
                 <h2>Árdiagram</h2>

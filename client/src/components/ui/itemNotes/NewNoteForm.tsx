@@ -6,6 +6,7 @@ import { Button } from "../button";
 import { Input } from "../input";
 import { Textarea } from "../textarea";
 import { createNote } from "@/services/itemNoteService";
+import { ItemNote } from "@/types/itemnote";
 
 const formSchema = z.object({
     title : z.string(),
@@ -13,7 +14,7 @@ const formSchema = z.object({
 })
 
 
-export function NewNoteForm({itemID} : {itemID : number}) {
+export function NewNoteForm({itemID, onNoteCreated} : {itemID : number, onNoteCreated? : (newNote : ItemNote) => any}) {
 
     const form = useForm<z.infer<typeof formSchema>>({
         resolver: zodResolver(formSchema),
@@ -32,6 +33,9 @@ export function NewNoteForm({itemID} : {itemID : number}) {
         await createNote(newNote).then((res) => {
             console.log(res);
             form.reset();
+            if(onNoteCreated){
+                onNoteCreated(res);
+            }
         })
         .catch((err) => {
             console.error(err);
