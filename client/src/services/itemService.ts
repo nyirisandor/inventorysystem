@@ -76,6 +76,8 @@ const getItems = async () : Promise<Item[]> => {
 
         let items : Item[] = [];
 
+        const pendingRequests : Promise<any>[] = [];
+
         itemEntries.forEach((entry) => {
             let item : Item = {
                 ID : entry.ID,
@@ -88,8 +90,17 @@ const getItems = async () : Promise<Item[]> => {
                 notes : []
             };
 
+            pendingRequests.push(axios.get(`/api/items/${entry.ID}/latestprice`).then((res) => {
+                item.latestPrice = res.data as ItemPrice
+            })
+            .catch((err : AxiosError) => {
+                if(err.status != 404) throw err;
+            }));
+
             items.push(item);
         });
+
+        await Promise.allSettled(pendingRequests);
 
         return items;
     }

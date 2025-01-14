@@ -71,7 +71,9 @@ export const ItemTable = () => {
                                     <TableCell className="font-medium">{item.name}</TableCell>
                                     <TableCell>{item.description}</TableCell>
                                     <TableCell>{item.type.ID == 0?"Nincs megadva":item.type.name}</TableCell>
-                                    <TableCell>{item.latestPrice || "Nincs legutóbbi ár"}</TableCell>
+                                    <TableCell>{
+                                        item.latestPrice?`${item.latestPrice.amount} ${item.latestPrice.currency}`:"Nincs legutóbbi ár"
+                                    }</TableCell>
                                 </TableRow>
 
 

@@ -8,7 +8,7 @@ export interface Item{
     name : string,
     description : string,
     type : ItemType,
-    latestPrice : any | null,
+    latestPrice : ItemPrice | null,
     pricehistory : ItemPrice[],
     notes : ItemNote[],
     documents : UploadedDocumentEntry[]
