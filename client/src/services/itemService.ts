@@ -44,9 +44,9 @@ const getItemByID = async (itemID : number) : Promise<Item> => {
         await axios.get(`/api/items/${itemEntry.ID}/prices`).then((res) => {
             const prices = res.data as ItemPrice[];
 
-            prices.forEach(x => x.date = new Date(x.date));
+            prices.forEach(x => x.date = new Date(x.date||0));
 
-            item.pricehistory = prices;
+            item.pricehistory = prices.sort((a,b) => (a.date?.getTime()||0) - (b.date?.getTime()||0));
         })
         .catch((err : AxiosError) => {
             item.pricehistory = [];

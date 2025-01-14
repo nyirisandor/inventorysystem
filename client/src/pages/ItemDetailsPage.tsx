@@ -6,7 +6,9 @@ import { PriceHistoryTable } from "@/components/ui/itemPrices/PriceHistoryTable"
 import { Toaster } from "@/components/ui/toaster";
 import { useToast } from "@/hooks/use-toast";
 import { getItemByID } from "@/services/itemService";
-import { Item } from "@/types/item";
+import { ItemEntry } from "@/types/item";
+import { ItemNote } from "@/types/itemnote";
+import { ItemPrice } from "@/types/itemprice";
 import { useEffect, useState } from "react";
 import { useParams } from "react-router-dom"
 
@@ -15,13 +17,25 @@ import { useParams } from "react-router-dom"
 const ItemDetailsPage = () => {
     const {id} = useParams();
 
-    const [item, setItem] = useState<Item|null>(null);
     const {toast} = useToast();
+
+    const [itemEntry,setItemEntry] = useState<ItemEntry|null>(null);
+    const [notes,setNotes] = useState<ItemNote[]>([]);
+    const [prices,setPrices] = useState<ItemPrice[]>([]);
 
     useEffect(() => {
         if(id === undefined) return;
-        getItemByID(Number.parseInt(id)).then((i) => {
-            setItem(i);
+        getItemByID(Number.parseInt(id)).then((item) => {
+            const entry : ItemEntry = {
+                ID : item.ID,
+                name : item.name,
+                description : item.description,
+                typeID : item.type.ID
+            };
+
+            setItemEntry(entry);
+            setNotes(item.notes);
+            setPrices(item.pricehistory);
         })
         .catch((err) => {
             console.error(err);
@@ -33,24 +47,25 @@ const ItemDetailsPage = () => {
 
     },[id]);
 
+
     return (
         <>
         <Toaster/>
 
         {
-            item? (<>
-            <h1>{item.name}</h1>
-            <p>ID : {item.ID}</p>
-            <p>Leírás: {item.description}</p>
+            itemEntry? (<>
+            <h1>{itemEntry.name}</h1>
+            <p>ID : {itemEntry.ID}</p>
+            <p>Leírás: {itemEntry.description}</p>
             <div className="notes">
                 <h2>Megjegyzések</h2>
-                <NewNoteForm itemID={item.ID}/>
-                {item.notes.map(x => <NoteEntry itemNote={x} key={x.ID}/>)}
+                <NewNoteForm itemID={itemEntry.ID}/>
+                {notes.map(x => <NoteEntry itemNote={x} key={x.ID}/>)}
             </div>
             <div className="prices">
                 <h2>Árdiagram</h2>
-                <PriceHistoryChart priceHistory={item.pricehistory}/>
-                <PriceHistoryTable itemID={item.ID} priceHistory={item.pricehistory}/>
+                <PriceHistoryChart priceHistory={prices}/>
+                <PriceHistoryTable itemID={itemEntry.ID} priceHistory={prices} onPricesChanged={setPrices}/>
             </div>
             </>)
             :

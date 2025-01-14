@@ -2,7 +2,7 @@ import { ItemPrice } from "@/types/itemprice";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "../table";
 import { CalendarIcon, icons } from "lucide-react";
 import { Button } from "../button";
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { Input } from "../input";
 import { Calendar } from "../calendar";
 import { Popover, PopoverContent, PopoverTrigger } from "../popover";
@@ -12,16 +12,18 @@ import { createPriceEntry, deletePriceEntry, updatePriceEntry } from "@/services
 
 
 
-function PriceHistoryTableRow({priceEntry} : {priceEntry : ItemPrice}){
+function PriceHistoryTableRow({priceEntry, onDeleteCallback, onUpdateCallback} : {priceEntry : ItemPrice, onDeleteCallback? : (ID : number | null) => any, onUpdateCallback? : (newVal : ItemPrice) => any}){
 
     const [isEditing,setIsEditing] = useState<boolean>(false);
+    
+    const priceEntryRef = useRef(priceEntry);
     
     const [date, setDate] = useState<Date|null|undefined>(priceEntry.date);
     const [amount, setAmount] = useState<number>(priceEntry.amount);
     const [currency, setCurrency] = useState<string>(priceEntry.currency);
 
     async function save(){
-        const newEntry : ItemPrice = priceEntry;
+        const newEntry : ItemPrice = priceEntryRef.current;
 
         newEntry.amount = amount;
         newEntry.currency = currency;
@@ -29,10 +31,13 @@ function PriceHistoryTableRow({priceEntry} : {priceEntry : ItemPrice}){
         if(date)
             newEntry.date = date;
 
-        if(priceEntry.ID != null){
+        if(priceEntryRef.current.ID != null){
             updatePriceEntry(newEntry).then((res) => {
-                console.log(res);
+                priceEntryRef.current = res;
                 setIsEditing(false);
+                if(onUpdateCallback){
+                    onUpdateCallback(res);
+                }
             })
             .catch((err) => {
                 console.error(err);
@@ -40,9 +45,11 @@ function PriceHistoryTableRow({priceEntry} : {priceEntry : ItemPrice}){
         }
         else{
             createPriceEntry(newEntry).then((res) => {
-                priceEntry = res;
-                console.log(res);
+                priceEntryRef.current = res;
                 setIsEditing(false);
+                if(onUpdateCallback){
+                    onUpdateCallback(res);
+                }
             })
             .catch((err) => {
                 console.error(err);
@@ -52,9 +59,11 @@ function PriceHistoryTableRow({priceEntry} : {priceEntry : ItemPrice}){
     }   
     
     async function onDelete(){
-        if(priceEntry.ID){
-            deletePriceEntry(priceEntry.ID).then((res) => {
-                console.log(res);
+        if(priceEntryRef.current.ID){
+            deletePriceEntry(priceEntryRef.current.ID).then(() => {
+                if(onDeleteCallback){
+                    onDeleteCallback(priceEntryRef.current.ID);
+                }
             })
             .catch((err) => {
                 console.error(err);
@@ -62,10 +71,17 @@ function PriceHistoryTableRow({priceEntry} : {priceEntry : ItemPrice}){
         }
     }
 
+    function onCancelEdit(){
+        setIsEditing(false);
+        if(priceEntryRef.current.ID == null && onDeleteCallback){
+            onDeleteCallback(priceEntryRef.current.ID);
+        }
+    }
+
     return <>
          <TableRow>
             {
-            isEditing||priceEntry.ID==null?
+            isEditing||priceEntryRef.current.ID==null?
             <>
                 <TableCell>
                         <Popover>
@@ -99,15 +115,15 @@ function PriceHistoryTableRow({priceEntry} : {priceEntry : ItemPrice}){
                     <Button onClick={save}>
                         <icons.Save/>
                     </Button>
-                    <Button onClick={() => setIsEditing(false)}>
+                    <Button onClick={onCancelEdit}>
                         <icons.X/>
                     </Button>
                 </TableCell>
             </>
             :
             <>
-                <TableCell>{priceEntry.date?.toDateString()}</TableCell>
-                <TableCell>{priceEntry.amount} {priceEntry.currency}</TableCell>
+                <TableCell>{date?.toDateString()}</TableCell>
+                <TableCell>{amount} {currency}</TableCell>
                 <TableCell>
                     <Button onClick={() => setIsEditing(true)}>
                         <icons.Wrench/>
@@ -127,9 +143,15 @@ function PriceHistoryTableRow({priceEntry} : {priceEntry : ItemPrice}){
 
 
 
-export function PriceHistoryTable({priceHistory,itemID} : {priceHistory : ItemPrice[], itemID : number}) {
+export function PriceHistoryTable({priceHistory,itemID, onPricesChanged} : {priceHistory : ItemPrice[], itemID : number, onPricesChanged? : (newPrices : ItemPrice[]) => any}) {
 
     const [prices,setPrices] = useState<ItemPrice[]>(priceHistory);
+
+    useEffect(() => {
+        if(onPricesChanged){
+            onPricesChanged(prices.filter(x => x.ID != null));
+        }
+    },[prices]);
     
     function onNewRow(){
         if(prices.every(x => x.ID != null)){
@@ -145,6 +167,24 @@ export function PriceHistoryTable({priceHistory,itemID} : {priceHistory : ItemPr
         }
     }
 
+    function onRowDeleted(rowID : number|null){
+        const newPrices = prices.filter(x => x.ID != rowID);
+        setPrices(newPrices);
+    }
+
+    function onRowEdited(rowData : ItemPrice){
+        var newPrices = prices;
+        if(prices.find(x => x.ID == rowData.ID) != null){
+            newPrices = prices.map(x => x.ID == rowData.ID?rowData:x)
+        }
+        else{
+            newPrices = prices.map(x => x.ID == null?rowData:x)
+        }
+
+        newPrices = newPrices.sort((a,b) => (a.date?.getTime()||0) - (b.date?.getTime()||0));
+        setPrices(newPrices);
+    }
+
     return <>
         <Table>
             <TableHeader>
@@ -156,7 +196,7 @@ export function PriceHistoryTable({priceHistory,itemID} : {priceHistory : ItemPr
             <TableBody>
                 {
                     prices.map(x => 
-                        <PriceHistoryTableRow priceEntry={x} key={x.ID}/>
+                        <PriceHistoryTableRow priceEntry={x} key={x.ID} onDeleteCallback={onRowDeleted} onUpdateCallback={onRowEdited}/>
                     )
                 }
                     <TableRow key="new">
