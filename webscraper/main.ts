@@ -1,5 +1,6 @@
 import puppeteer, {ElementHandle} from 'puppeteer'
 import fs from 'fs'
+import { OrderItem, WebscraperOrder } from './OrderTypes';
 
 
 async function login() {
@@ -65,7 +66,7 @@ async function getOrders() {
     const cookies = JSON.parse(cookiesString);
 
     const browser = await puppeteer.launch({
-        headless : false,
+        headless : true,
         args: [
             '--no-sandbox',
             '--disable-setuid-sandbox',
@@ -147,6 +148,8 @@ async function getOrders() {
 
         return order;
     }));
+
+    browser.close();
     
     return orders;
 }
@@ -157,7 +160,10 @@ login().then(async () => {
 });
 */
 
-getOrders();
+getOrders().then(result =>{
+    fs.writeFileSync("aliexpress_orders.json",JSON.stringify(result));
+    console.log(result)
+} );
 
 
 

@@ -1,4 +1,4 @@
-interface WebscraperOrder{
+export interface WebscraperOrder{
     orderDate : Date | null,
     ID : number | null,
     status : string,
@@ -6,7 +6,7 @@ interface WebscraperOrder{
 }
 
 
-interface OrderItem{
+export interface OrderItem{
     name : string,
     variant : string,
     priceCurrency : string,
