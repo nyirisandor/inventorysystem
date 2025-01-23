@@ -48,7 +48,7 @@ const uploadDocument = async (params : UploadDocumentParameters) : Promise<Uploa
             formData.append("fileName",params.values.fileName);
         }
     
-        const buffer = await params.values.file.text();
+        const buffer = await params.values.file.bytes();
         formData.append("file",new Blob([buffer]),params.values.file.name);
 
 
