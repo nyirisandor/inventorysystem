@@ -23,7 +23,7 @@ export default abstract class WebScraperBase{
 
     public abstract GetItemsInCart(cookies : Cookie[]) : Promise<Webscraper.Order>;
 
-    public abstract GetItemDetails(itemLink : string, getFiles? : boolean, getImages? : boolean) : Promise<Webscraper.ItemDetails[]>;
+    public abstract GetItemDetails(itemLink : string, getFiles? : boolean, getImages? : boolean) : Promise<Webscraper.ItemDetails>;
 
 
     //Used to make detection harder

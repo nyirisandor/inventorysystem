@@ -136,12 +136,12 @@ export default class AliExpressScraper extends WebscraperBase{
             const orderInfoHeaderHTML = await orderElement.$eval('.order-item-header-right-info', x => x.innerHTML);
     
             let orderDateStr = orderInfoHeaderHTML.match(/Order date:\s*([A-Za-z]{3}\s\d{1,2},\s\d{4})/)?.at(1);
-            let orderIDStr =Number.parseInt(orderInfoHeaderHTML.match(/Order ID:\s*(\d+)/)?.at(1) || "");
+            let orderID =orderInfoHeaderHTML.match(/Order ID:\s*(\d+)/)?.at(1);
     
             const orderStatusText = await orderElement.$eval('.order-item-header-status-text',x => x.innerHTML)
     
             const order : Webscraper.Order = {
-                ID : Number.isNaN(orderIDStr) ? null : orderIDStr,
+                ID : orderID || "",
                 orderDate : orderDateStr? new Date(orderDateStr) : null,
                 status : orderStatusText,
                 items : []
@@ -152,7 +152,7 @@ export default class AliExpressScraper extends WebscraperBase{
     
             const itemName = await orderElement.$eval('.order-item-content-info-name span',x => x.title)
             const itemLink = orderHTML.match(/(www\.aliexpress\.com\/item\/\d+\.html)/)?.[1] || "";
-            const variant = orderHTML.match(/<div[^>]*class="order-item-content-info-sku"[^>]*>(.*?)<\/div>/)?.[1] || ""
+            const variantName = orderHTML.match(/<div[^>]*class="order-item-content-info-sku"[^>]*>(.*?)<\/div>/)?.[1] || ""
     
     
             const quantityText = await orderElement.$eval('.order-item-content-info-number-quantity',(x : any) => x.innerText);
@@ -161,14 +161,20 @@ export default class AliExpressScraper extends WebscraperBase{
             const currencyInfoText = await orderElement.$eval('.order-item-content-info-number',(x : any) => x.innerText);
             const currency = currencyInfoText.match(/^\D+/)?.[0] || "";
             const price = Number.parseFloat(currencyInfoText.match(/\D*([\d,.]*)x.*/)?.[1].replace(",",""));
+
+            const variant : Webscraper.ItemVariant = {
+                name : variantName,
+                price : {
+                    amount : Number.isNaN(price) ? 0 : price,
+                    currency : currency
+                }
+            }
     
-            const items : Webscraper.OrderItem[] = [
+            const items : Webscraper.OrderedItem[] = [
                 {
                     name : itemName,
-                    variant : variant,
-                    priceCurrency : currency,
-                    priceAmount : Number.isNaN(price) ? null : price,
-                    orderedAmount : Number.isNaN(quantity) ? null : quantity,
+                    variants : [variant],
+                    amount : Number.isNaN(quantity) ? 0 : quantity,
                     link : itemLink,
                 }
             ];
@@ -217,12 +223,12 @@ export default class AliExpressScraper extends WebscraperBase{
         const orderInfoHeaderHTML = await page.$eval('div.order-detail-order-info', x => x.innerText);
     
         let orderDateStr = orderInfoHeaderHTML.match(/Order placed on:\s*([A-Za-z]{3}\s\d{1,2},\s\d{4})/)?.at(0);
-        let orderIDStr =Number.parseInt(orderInfoHeaderHTML.match(/Order ID:\s*(\d+)/)?.at(1) || "");
+        let orderIDStr = orderInfoHeaderHTML.match(/Order ID:\s*(\d+)/)?.at(1);
     
         const orderStatusText = await page.$eval('.order-status-content .order-block-title',x => x.innerHTML)
     
         const order : Webscraper.Order = {
-            ID : Number.isNaN(orderIDStr) ? null : orderIDStr,
+            ID : orderIDStr || "",
             orderDate : orderDateStr? new Date(orderDateStr) : null,
             status : orderStatusText,
             items : []
@@ -232,7 +238,7 @@ export default class AliExpressScraper extends WebscraperBase{
 
         const itemName = await page.$eval('.order-detail-item-content-info a',x => x.innerText)
         const itemLink = orderHTML.match(/(www\.aliexpress\.com\/item\/\d+\.html)/)?.[1] || "";
-        const variant = await page.$eval('div.item-sku-attr',x => x.innerText).catch(err =>  "");
+        const variantName = await page.$eval('div.item-sku-attr',x => x.innerText).catch(err =>  "");
     
     
         const quantityText = await page.$eval('.order-detail-item-content-info .item-price-quantity',(x : any) => x.innerText);
@@ -242,13 +248,19 @@ export default class AliExpressScraper extends WebscraperBase{
         const currency = currencyInfoText.match(/^\D+/)?.[0] || "";
         const price = Number.parseFloat(currencyInfoText.match(/\D*([\d,.]*)x.*/)?.[1].replace(",",""));
     
-        const items : Webscraper.OrderItem[] = [
+        const variant : Webscraper.ItemVariant = {
+            name : variantName,
+            price : {
+                amount : Number.isNaN(price) ? 0 : price,
+                currency : currency
+            }
+        }
+
+        const items : Webscraper.OrderedItem[] = [
             {
                 name : itemName,
-                variant : variant,
-                priceCurrency : currency,
-                priceAmount : Number.isNaN(price) ? null : price,
-                orderedAmount : Number.isNaN(quantity) ? null : quantity,
+                variants : [variant],
+                amount : Number.isNaN(quantity) ? 0 : quantity,
                 link : itemLink,
             }
         ];
@@ -259,7 +271,7 @@ export default class AliExpressScraper extends WebscraperBase{
     }
     
     // Multiple options?
-    public async GetItemDetails(itemLink : string, getFiles? : boolean, getImages? : boolean, cookies? : Cookie[]) : Promise<Webscraper.ItemDetails[]>{
+    public async GetItemDetails(itemLink : string, getFiles? : boolean, getImages? : boolean, cookies? : Cookie[]) : Promise<Webscraper.ItemDetails>{
         const browser = await puppeteer.launch({
             headless : false,
             args: [
@@ -286,10 +298,44 @@ export default class AliExpressScraper extends WebscraperBase{
 
         await page.waitForNetworkIdle();
 
+        const name = await page.$eval("[class*='title--wrap--'] h1",x => x.innerText);
+        const images : File[] = [];
+
+
+        const item : Webscraper.ItemDetails = {
+            name : name,
+            variants : [],
+            link : itemLink,
+            images : images,
+            files : [],
+            description : "",
+            longDescription : "",
+        }
+
+        if(getImages){
+            const imageLinks = await page.$$eval("[class*='slider--slider'] img", img => img.map(x => x.src));
+
+            for(let link of imageLinks){
+                images.push(await this.GetFileFromURL(link));
+            }
+        }
+
         const variantSelectors = await page.$$("[class*='sku-item--skus'] div");
 
         if(variantSelectors == null || variantSelectors.length == 0){
+            const priceText = await page.$eval("span[class*='price--currentPriceText']",x => x.innerText);
+            const priceCurrency = priceText.match(/\D*/)?.[0];
+            const priceAmount = Number.parseFloat(priceText.match(/\D*([\d,.]*)/)?.[1].replace(",","") || "");
 
+            const variant : Webscraper.ItemVariant = {
+                name : item.name,
+                price : {
+                    amount : priceAmount,
+                    currency : priceCurrency || ""
+                }
+            }
+
+            item.variants.push(variant);
         }
         else{
             for(let variantSelector of variantSelectors){
@@ -297,39 +343,26 @@ export default class AliExpressScraper extends WebscraperBase{
 
                 await page.waitForNetworkIdle();
 
-                const name = await page.$eval("[class*='title--wrap--'] h1",x => x.innerText)
+                const variantImgLink = await variantSelector.$eval('img',x => x.src);
+                
                 const priceText = await page.$eval("span[class*='price--currentPriceText']",x => x.innerText);
                 const priceCurrency = priceText.match(/\D*/)?.[0];
                 const priceAmount = Number.parseFloat(priceText.match(/\D*([\d,.]*)/)?.[1].replace(",","") || "");
-                const variant = await page.$eval("[class*='sku-item--title'] span span",x => x.innerText);
-                const images : File[] = [];
+                const variantName = await page.$eval("[class*='sku-item--title'] span span",x => x.innerText);
 
-                if(getImages){
-                    const variantImgLink = await variantSelector.$eval('img',x => x.src);
-                    const imageLinks = await page.$$eval("[class*='slider--slider'] img", img => img.map(x => x.src));
-    
-                    
-                    for(let link of [variantImgLink,...imageLinks]){
-                        images.push(await this.GetFileFromURL(link));
+                const variant : Webscraper.ItemVariant = {
+                    name : variantName,
+                    price : {
+                        amount : priceAmount,
+                        currency : priceCurrency || ""
                     }
                 }
 
-                const item : Webscraper.ItemDetails = {
-                    name : name,
-                    variant : variant,
-                    priceCurrency : priceCurrency || "",
-                    priceAmount : Number.isNaN(priceAmount)?null : priceAmount ,
-                    link : itemLink,
-                    images : images,
-                    files : [],
-                    description : "",
-                }
-
-                items.push(item);
+                item.variants.push(variant);
             }
         }
 
-        return items;
+        return item;
     }
 
     public async GetItemsInCart(cookies : Cookie[]): Promise<Webscraper.Order> {
@@ -355,10 +388,14 @@ export default class AliExpressScraper extends WebscraperBase{
         await page.setViewport(null);
         await page.goto("https://www.aliexpress.com/p/shoppingcart/index.html");
 
-        await page.waitForNetworkIdle();
+        try{
+            await page.waitForNetworkIdle({timeout : 5_000});
+        }
+        catch(e){}
+        
 
         const order : Webscraper.Order = {
-            ID : null,
+            ID : "",
             orderDate : null,
             status : "In cart",
             items : []
@@ -381,9 +418,9 @@ export default class AliExpressScraper extends WebscraperBase{
             }
             catch(e){}
             
-            let variant = "";
+            let variantName = "";
             try{
-                variant = await itemNode.$eval("div.cart-product-sku",x => x.innerText) || "";
+                variantName = await itemNode.$eval("div.cart-product-sku",x => x.innerText) || "";
             }
             catch(e){}
 
@@ -404,13 +441,20 @@ export default class AliExpressScraper extends WebscraperBase{
             }
             catch(e){}
 
-            var item : Webscraper.OrderItem = {
+
+            const variant : Webscraper.ItemVariant = {
+                name : variantName,
+                price : {
+                    currency : currency,
+                    amount : isNaN(price)?0:price
+                }
+            }
+
+            const item : Webscraper.OrderedItem = {
                 name : itemName,
-                variant : variant,
-                priceCurrency : currency,
-                priceAmount : isNaN(price)?0:price,
+                variants : [variant],
                 link : link,
-                orderedAmount : isNaN(orderedAmount)?1:orderedAmount,
+                amount : isNaN(orderedAmount)?1:orderedAmount,
             };
 
             order.items.push(item);
