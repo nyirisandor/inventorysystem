@@ -1,7 +1,6 @@
 import puppeteer, { Cookie, ElementHandle, Page} from "puppeteer";
 import WebscraperBase from "../Webscraper";
 import { Webscraper } from "../WebScraperTypes";
-import repl from 'repl'
 
 
 export default class AliExpressScraper extends WebscraperBase{
@@ -464,16 +463,6 @@ export default class AliExpressScraper extends WebscraperBase{
         return order;
     }
 
-
-
-    protected async GetFileFromURL(url : string) : Promise<File>{
-        const fileBlob = await (await fetch(url)).blob();
-        const fileName = url.match(/\/([\w.][\w.-]*)(?<!\/\.)(?<!\/\.\.)(?:\?.*)?$/)?.[1] || "unknown";
-    
-        let file : File  = new File([fileBlob],fileName);
-
-        return file;
-    }
 
     protected async OpenAccountDetails(page : Page, timeout = 0){
 
